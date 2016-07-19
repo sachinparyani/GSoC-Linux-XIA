@@ -5,7 +5,7 @@
 
 #include <net/xia_fib.h>
 
-struct list_fib_xid {
+struct rht_fib_xid {
 	/* Pointers to add this struct in bucket lists of an XID table. */
 	struct hlist_node	fx_branch_list[2];
 };
