@@ -14,6 +14,10 @@ struct rht_fib_xid_table {
 	struct rhashtable rht;
 };
 
+/*
+ *	Exported by list_fib.c
+ */
+
 int rht_fib_delroute(struct xip_ppal_ctx *ctx, struct fib_xid_table *xtbl,
 	struct xia_fib_config *cfg);
 
