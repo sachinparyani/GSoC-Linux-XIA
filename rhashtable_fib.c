@@ -200,50 +200,31 @@ static void rht_xtbl_death_work(struct work_struct *work)
 	kfree(xtbl);
 }
 
-static inline struct hlist_head *__xidhead(struct hlist_head *buckets,
-					   u32 bucket)
+static struct fib_xid *rht_fxid_find(struct fib_xid_table *xtbl,
+				     const u8 *xid)
 {
-	return &buckets[bucket];
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	struct rht_fib_xid *rfxid;
+	rfxid = rhashtable_lookup_fast(&rxtbl->rht, xid, rht_params);
+	
+	if(rfxid)
+		return rfxid_fxid(rfxid);
+	else
+		return NULL;
 }
 
-static inline struct hlist_head *xidhead(struct fib_xid_buckets *branch,
-					 const u8 *xid)
-{
-	return __xidhead(branch->buckets, get_bucket(xid, branch->divisor));
-}
-
-static struct fib_xid *list_fxid_find_locked(struct fib_xid_table *xtbl,
+/* Coming Soon */
+static struct fib_xid *rht_fxid_find_locked(struct fib_xid_table *xtbl,
 					     u32 bucket, const u8 *xid,
 					     struct hlist_head **phead)
 {
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	struct list_fib_xid *lfxid;
-	struct fib_xid_buckets *abranch = lxtbl->fxt_active_branch;
-	int aindex = lxtbl_branch_index(lxtbl, abranch);
-	*phead = __xidhead(abranch->buckets, bucket);
-	hlist_for_each_entry(lfxid, *phead, fx_branch_list[aindex]) {
-		if (are_xids_equal(lfxid_fxid(lfxid)->fx_xid, xid))
-			return lfxid_fxid(lfxid);
-	}
 	return NULL;
 }
 
-static struct fib_xid *list_fxid_find_rcu(struct fib_xid_table *xtbl,
+/* Coming Soon */
+static struct fib_xid *rht_fxid_find_rcu(struct fib_xid_table *xtbl,
 					  const u8 *xid)
 {
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	struct fib_xid_buckets *abranch;
-	int aindex;
-	struct list_fib_xid *lfxid;
-	struct hlist_head *head;
-
-	abranch = rcu_dereference(lxtbl->fxt_active_branch);
-	aindex = lxtbl_branch_index(lxtbl, abranch);
-	head = xidhead(abranch, xid);
-	hlist_for_each_entry_rcu(lfxid, head, fx_branch_list[aindex]) {
-		if (are_xids_equal(lfxid_fxid(lfxid)->fx_xid, xid))
-			return lfxid_fxid(lfxid);
-	}
 	return NULL;
 }
 
