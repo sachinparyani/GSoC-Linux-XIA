@@ -40,12 +40,10 @@ static void free_fn(void *ptr, void *arg)
 	(*rm_count)++;
 }
 
-
-/* @divisor *MUST* be a power of 2. */
-static inline u32 get_bucket(const u8 *xid, int divisor)
+static inline u32 rht_jhash2(const u8 *k, u32 length, u32 interval)
 {
 	BUILD_BUG_ON(XIA_XID_MAX != sizeof(u32) * 5);
-	return jhash2((const u32 *)xid, 5, 0) & (divisor - 1);
+	return jhash2((const u32 *)xid, length, interval);
 }
 
 static inline u32 hash_bucket(struct list_fib_xid_table *lxtbl, u32 bucket)
