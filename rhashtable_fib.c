@@ -1,32 +1,33 @@
 #include <linux/export.h>
 #include <linux/jhash.h>
 #include <linux/vmalloc.h>
-#include <net/xia_locktbl.h>
+#include <net/xia_locktbl.h>	/* Not quite sure if this is required */
 #include <net/xia_vxidty.h>
-#include <net/xia_list_fib.h>
+#include <net/xia_rht_fib.h>
+#include <linux/rhashtable.h>
 
-static inline struct fib_xid *lfxid_fxid(struct list_fib_xid *lfxid)
+static inline struct fib_xid *rfxid_fxid(struct rht_fib_xid *rfxid)
 {
-	return likely(lfxid)
-		? container_of((void *)lfxid, struct fib_xid, fx_data)
+	return likely(rfxid)
+		? container_of((void *)rfxid, struct fib_xid, fx_data)
 		: NULL;
 }
 
-static inline struct list_fib_xid *fxid_lfxid(struct fib_xid *fxid)
+static inline struct rht_fib_xid *fxid_rfxid(struct fib_xid *fxid)
 {
-	return (struct list_fib_xid *)fxid->fx_data;
+	return (struct rht_fib_xid *)fxid->fx_data;
 }
 
-static inline struct fib_xid_table *lxtbl_xtbl(struct list_fib_xid_table *lxtbl)
+static inline struct fib_xid_table *rxtbl_xtbl(struct rht_fib_xid_table *rxtbl)
 {
-	return likely(lxtbl)
-		? container_of((void *)lxtbl, struct fib_xid_table, fxt_data)
+	return likely(rxtbl)
+		? container_of((void *)rxtbl, struct fib_xid_table, fxt_data)
 		: NULL;
 }
 
-static inline struct list_fib_xid_table *xtbl_lxtbl(struct fib_xid_table *xtbl)
+static inline struct rht_fib_xid_table *xtbl_rxtbl(struct fib_xid_table *xtbl)
 {
-	return (struct list_fib_xid_table *)xtbl->fxt_data;
+	return (struct rht_fib_xid_table *)xtbl->fxt_data;
 }
 
 /* Lock tables */
@@ -101,15 +102,15 @@ static inline void free_buckets(struct fib_xid_buckets *branch)
 static void rehash_work(struct work_struct *work);
 static void list_xtbl_death_work(struct work_struct *work);
 
-static int list_xtbl_init(struct xip_ppal_ctx *ctx, struct net *net,
+static int rht_xtbl_init(struct xip_ppal_ctx *ctx, struct net *net,
 			  struct xia_lock_table *locktbl,
 			  const xia_ppal_all_rt_eops_t all_eops,
 			  const struct xia_ppal_rt_iops *all_iops)
 {
 	struct fib_xid_table *new_xtbl;
-	struct list_fib_xid_table *lxtbl;
-	struct fib_xid_buckets *abranch;
-	int rc;
+	struct rht_fib_xid_table *rxtbl;
+	struct bucket_table *tbl;
+	int rc, err;
 
 	if (ctx->xpc_xtbl) {
 		rc = -EEXIST;
@@ -117,28 +118,22 @@ static int list_xtbl_init(struct xip_ppal_ctx *ctx, struct net *net,
 	}
 
 	rc = -ENOMEM;
-	new_xtbl = kzalloc(sizeof(*new_xtbl) + sizeof(*lxtbl), GFP_KERNEL);
+	new_xtbl = kzalloc(sizeof(*new_xtbl) + sizeof(*rxtbl), GFP_KERNEL);
 	if (!new_xtbl)
 		goto out;
-	lxtbl = xtbl_lxtbl(new_xtbl);
-	abranch = &lxtbl->fxt_branch[0];
-	lxtbl->fxt_active_branch = abranch;
-	BUILD_BUG_ON_NOT_POWER_OF_2(XTBL_INITIAL_DIV);
-	if (alloc_buckets(abranch, XTBL_INITIAL_DIV))
+	rxtbl = xtbl_rxtbl(new_xtbl);
+	err = rhashtable_init(&rxtbl->rht,&rht_params);
+	if(err)
 		goto new_xtbl;
-
+	
 	new_xtbl->fxt_ppal_type = ctx->xpc_ppal_type;
 	new_xtbl->fxt_net = net;
-	lxtbl->fxt_locktbl = locktbl;
 	atomic_set(&new_xtbl->fxt_count, 0);
-	get_random_bytes(&lxtbl->fxt_seed, sizeof(lxtbl->fxt_seed));
-	INIT_WORK(&lxtbl->fxt_rehash_work, rehash_work);
-	rwlock_init(&lxtbl->fxt_writers_lock);
 	new_xtbl->all_eops = all_eops;
 	new_xtbl->all_iops = all_iops;
 
 	atomic_set(&new_xtbl->refcnt, 1);
-	INIT_WORK(&new_xtbl->fxt_death_work, list_xtbl_death_work);
+	INIT_WORK(&new_xtbl->fxt_death_work, rht_xtbl_death_work);
 	ctx->xpc_xtbl = new_xtbl;
 
 	rc = 0;
