@@ -11,7 +11,7 @@ struct rht_fib_xid {
 };
 
 struct rht_fib_xid_table {
-	struct rhashtable rht;
+	struct rhashtable	rht;
 };
 
 struct rhashtable_free_and_destroy_arg {
