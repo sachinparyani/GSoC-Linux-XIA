@@ -30,12 +30,16 @@ static inline struct rht_fib_xid_table *xtbl_rxtbl(struct fib_xid_table *xtbl)
 	return (struct rht_fib_xid_table *)xtbl->fxt_data;
 }
 
-/* Lock tables */
-
-static inline u32 xtbl_hash_mix(struct fib_xid_table *xtbl)
+static void free_fn(void *ptr, void *arg)
 {
-	return (u32)(((unsigned long)xtbl) >> L1_CACHE_SHIFT);
+	int *rm_count = &arg->rm_count;
+	struct rht_fib_xid *rfxid = ptr;
+	struct fib_xid_table *xtbl = arg->xtbl;
+	rhashtable_remove_fast(&xtbl_rxtbl(xtbl)->rht, &rfxid->node, (&xtbl_rxtbl(xtbl)->rht)->p);
+	fxid_free_norcu(xtbl, rfxid_fxid(rfxid));
+	(*rm_count)++;
 }
+
 
 /* @divisor *MUST* be a power of 2. */
 static inline u32 get_bucket(const u8 *xid, int divisor)
@@ -171,34 +175,18 @@ static void rht_xtbl_death_work(struct work_struct *work)
 {
 	struct fib_xid_table *xtbl = container_of(work, struct fib_xid_table,
 		fxt_death_work);
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	struct fib_xid_buckets *abranch;
-	int adivisor, aindex;
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	
 	int rm_count = 0;
-	int i, c;
+	int c;
 
-	cancel_work_sync(&lxtbl->fxt_rehash_work);
-	/* Now it's safe to obtain the following variables. */
-	abranch = lxtbl->fxt_active_branch;
-	adivisor = abranch->divisor;
-	aindex = lxtbl_branch_index(lxtbl, abranch);
+	struct rhashtable_free_and_destroy_arg arg = {
+		.xtbl = xtbl;
+		.rm_count = &rm_count;
+	};
 
-	/* Make sure that we don't have any reader. */
-	synchronize_rcu();
-
-	for (i = 0; i < adivisor; i++) {
-		struct list_fib_xid *lfxid;
-		struct hlist_node *n;
-		struct hlist_head *head = &abranch->buckets[i];
-
-		hlist_for_each_entry_safe(lfxid, n, head,
-					  fx_branch_list[aindex]) {
-			hlist_del(&lfxid->fx_branch_list[aindex]);
-			fxid_free_norcu(xtbl, lfxid_fxid(lfxid));
-			rm_count++;
-		}
-	}
-
+	rhashtable_free_and_destroy(&rxtbl->rht, free_fun, &arg);
+	
 	/* It doesn't return an error here because there's nothing
 	 * the caller can do about this error/bug.
 	 */
@@ -209,8 +197,6 @@ static void rht_xtbl_death_work(struct work_struct *work)
 		dump_stack();
 	}
 
-	free_buckets(abranch);
-	lxtbl->fxt_locktbl = NULL; /* Being redundant. */
 	kfree(xtbl);
 }
 
