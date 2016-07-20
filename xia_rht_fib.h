@@ -14,6 +14,11 @@ struct rht_fib_xid_table {
 	struct rhashtable rht;
 };
 
+struct rhashtable_free_and_destroy_arg {
+	struct fib_xid_table	*xtbl;
+	int			*rm_count;
+};
+
 /*
  *	Exported by list_fib.c
  */
