@@ -30,6 +30,7 @@ static inline struct rht_fib_xid_table *xtbl_rxtbl(struct fib_xid_table *xtbl)
 	return (struct rht_fib_xid_table *)xtbl->fxt_data;
 }
 
+/* Not sure if this function should be inline or not */
 static void free_fn(void *ptr, void *arg)
 {
 	int *rm_count = &arg->rm_count;
@@ -46,9 +47,10 @@ static inline u32 rht_jhash2(const u8 *k, u32 length, u32 interval)
 	return jhash2((const u32 *)xid, length, interval);
 }
 
-static inline u32 hash_bucket(struct list_fib_xid_table *lxtbl, u32 bucket)
+static inline int rht_obj_cmpfn(struct rhashtable_compare_arg *arg, const void *obj)
 {
-	return xtbl_hash_mix(lxtbl_xtbl(lxtbl)) * bucket + lxtbl->fxt_seed;
+	const struct rht_fib_xid *rfxid = obj;
+	return (!are_xids_equal(rfxid_fxid(rfxid)->fx_xid, arg->key));
 }
 
 /* Don't make this function inline, it's bigger than it looks like! */
