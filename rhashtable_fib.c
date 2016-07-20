@@ -145,16 +145,17 @@ out:
 	return rc;
 }
 
-static void *list_fxid_ppal_alloc(size_t ppal_entry_size, gfp_t flags)
+static void *rht_fxid_ppal_alloc(size_t ppal_entry_size, gfp_t flags)
 {
-	return kmalloc(ppal_entry_size + sizeof(struct list_fib_xid), flags);
+	return kmalloc(ppal_entry_size + sizeof(struct rht_fib_xid), flags);
 }
 
-static void list_fxid_init(struct fib_xid *fxid, int table_id, int entry_type)
+static void rht_fxid_init(struct fib_xid *fxid, int table_id, int entry_type)
 {
-	struct list_fib_xid *lfxid = fxid_lfxid(fxid);
-	INIT_HLIST_NODE(&lfxid->fx_branch_list[0]);
-	INIT_HLIST_NODE(&lfxid->fx_branch_list[1]);
+	struct rht_fib_xid *rfxid = fxid_rfxid(fxid);
+	struct rhash_head *pnode;
+	pnode = &rfxid->node;
+	pnode->next = NULL;
 
 	BUILD_BUG_ON(XRTABLE_MAX_INDEX >= 0x100);
 	BUG_ON(table_id >= XRTABLE_MAX_INDEX);
@@ -166,7 +167,7 @@ static void list_fxid_init(struct fib_xid *fxid, int table_id, int entry_type)
 	fxid->dead.xtbl = NULL;
 }
 
-static void list_xtbl_death_work(struct work_struct *work)
+static void rht_xtbl_death_work(struct work_struct *work)
 {
 	struct fib_xid_table *xtbl = container_of(work, struct fib_xid_table,
 		fxt_death_work);
