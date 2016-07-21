@@ -421,39 +421,25 @@ static void rehash_work(struct work_struct *work)
 	free_buckets(abranch);
 }
 
-static int list_fxid_add_locked(void *parg, struct fib_xid_table *xtbl,
+/* Coming Soon */
+static int rht_fxid_add_locked(void *parg, struct fib_xid_table *xtbl,
 				struct fib_xid *fxid)
 {
-	struct list_fib_xid *lfxid = fxid_lfxid(fxid);
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	struct hlist_head *head;
-	struct fib_xid_buckets *abranch = lxtbl->fxt_active_branch;
-	int aindex = lxtbl_branch_index(lxtbl, abranch);
-	int should_rehash;
-	u32 bucket = parg_bucket(parg);
-
-	if (list_fxid_find_locked(xtbl, bucket, fxid->fx_xid, &head))
-		return -EEXIST;
-
-	hlist_add_head_rcu(&lfxid->fx_branch_list[aindex], head);
-	should_rehash =
-		atomic_inc_return(&xtbl->fxt_count) / abranch->divisor > 2;
-
-	/* Grow table as needed. */
-	if (should_rehash && !xtbl->dead)
-		schedule_work(&lxtbl->fxt_rehash_work);
-
 	return 0;
 }
 
-static int list_fxid_add(struct fib_xid_table *xtbl, struct fib_xid *fxid)
+static int rht_fxid_add(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 {
-	u32 bucket;
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	struct rht_fib_xid *rfxid = fxid_rfxid(fxid);
 	int rc;
-
-	bucket = list_fib_lock(xtbl, fxid);
-	rc = list_fxid_add_locked(&bucket, xtbl, fxid);
-	list_fib_unlock(xtbl, &bucket);
+	
+	rc =  rhashtable_lookup_insert_key(&rxtbl->rht, fxid->fx_xid, &rfxid->node, &rht_params);
+	if(IS_ERR(rc))
+		goto out;
+	
+	atomic_inc(&xtbl->fxt_count);
+ out: 	
 	return rc;
 }
 
