@@ -170,14 +170,6 @@ static struct fib_xid *rht_fxid_find(struct fib_xid_table *xtbl,
 }
 
 /* Coming Soon */
-static struct fib_xid *rht_fxid_find_locked(struct fib_xid_table *xtbl,
-					     u32 bucket, const u8 *xid,
-					     struct hlist_head **phead)
-{
-	return NULL;
-}
-
-/* Coming Soon */
 static struct fib_xid *rht_fxid_find_rcu(struct fib_xid_table *xtbl,
 					  const u8 *xid)
 {
