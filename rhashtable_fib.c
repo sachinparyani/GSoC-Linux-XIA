@@ -251,25 +251,28 @@ static inline u32 list_fib_lock(struct fib_xid_table *xtbl,
 	return list_fib_lock_bucket_xid(xtbl, fxid->fx_xid);
 }
 
-/* For the list FIB, @parg represents a u32 bucket. */
-static inline u32 parg_bucket(void *parg)
+/* For the relativistic hashtable FIB, @parg represents a unsigned int hash. */
+static inline unsigned int parg_hash(void *parg)
 {
 	if (unlikely(!parg))
 		BUG();
-	return *(u32 *)parg;
+	return *(unsigned int *)parg;
 }
 
-static void list_fib_unlock(struct fib_xid_table *xtbl, void *parg)
+/* Not sure about the correctness of this code. Maybe the right bucket table is not being dereferenced */
+static void rht_fib_unlock(struct fib_xid_table *xtbl, void *parg)
 	__releases(xip_bucket_lock)
 {
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	u32 bucket = parg_bucket(parg);
-
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	unsigned int hash = parg_hash(parg);
+	spinlock_t *lock;
+	struct bucket_table *tbl = rht_dereference_rcu((&rxtbl->rht)->tbl, ht);
+	lock = rht_bucket_lock(tbl, hash);
+	
 	/* Make sparse happy with only one __releases. */
-	__acquire(bucket);
-
-	bucket_unlock(lxtbl, bucket);
-	read_unlock(&lxtbl->fxt_writers_lock);
+	__acquire(hash);
+	
+	spin_unlock_bh(lock);
 }
 
 static struct fib_xid *list_fxid_find_lock(void *parg,
