@@ -328,33 +328,14 @@ out:
 	return rc;
 }
 
-static int list_iterate_xids_rcu(struct fib_xid_table *xtbl,
+/* Coming Soon */
+static int rht_iterate_xids_rcu(struct fib_xid_table *xtbl,
 				 int (*rcu_callback)(struct fib_xid_table *xtbl,
 						     struct fib_xid *fxid,
 						     const void *arg),
 				 const void *arg)
 {
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	struct fib_xid_buckets *abranch;
-	int aindex;
-	u32 bucket;
-	int rc = 0;
-
-	abranch = rcu_dereference(lxtbl->fxt_active_branch);
-	aindex = lxtbl_branch_index(lxtbl, abranch);
-	for (bucket = 0; bucket < abranch->divisor; bucket++) {
-		struct list_fib_xid *lfxid;
-		struct hlist_head *head = __xidhead(abranch->buckets, bucket);
-
-		hlist_for_each_entry_rcu(lfxid, head, fx_branch_list[aindex]) {
-			rc = rcu_callback(xtbl, lfxid_fxid(lfxid), arg);
-			if (rc)
-				goto out;
-		}
-	}
-
-out:
-	return rc;
+	return 0;
 }
 
 /* Grow table as needed. */
