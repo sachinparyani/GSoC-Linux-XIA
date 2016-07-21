@@ -443,48 +443,32 @@ static int rht_fxid_add(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 	return rc;
 }
 
-static inline void __list_fxid_rm_locked(struct fib_xid_table *xtbl,
-					 struct fib_xid_buckets *abranch,
-					 struct fib_xid *fxid)
-{
-	hlist_del_rcu(&(fxid_lfxid(fxid))->
-		fx_branch_list[lxtbl_branch_index(xtbl_lxtbl(xtbl), abranch)]);
-	atomic_dec(&xtbl->fxt_count);
-}
-
-static void list_fxid_rm_locked(void *parg, struct fib_xid_table *xtbl,
+/* Coming Soon */
+static void rht_fxid_rm_locked(void *parg, struct fib_xid_table *xtbl,
 				struct fib_xid *fxid)
 {
-	/* Currently, @parg is not necessary, but if it is, one should
-	 * call parg_bucket() instead of dereferencing it directly.
-	 */
-
-	/* Notice that calling list_fib_rm_fxid_locked is different from
-	 * calling __list_rm_fxid_locked because the latter is inline.
-	 */
-	__list_fxid_rm_locked(xtbl, xtbl_lxtbl(xtbl)->fxt_active_branch, fxid);
 }
 
-static struct fib_xid *list_xid_rm(struct fib_xid_table *xtbl, const u8 *xid)
+/* This function needs to be changed if functions rht_fxid_find_lock and rht_fxid_rm_locked get implemented */
+static struct fib_xid *rht_xid_rm(struct fib_xid_table *xtbl, const u8 *xid)
 {
-	u32 bucket;
-	struct fib_xid *fxid = list_fxid_find_lock(&bucket, xtbl, xid);
+	struct fib_xid *fxid = rht_fxid_find(xtbl, xid);
 
 	if (!fxid) {
-		list_fib_unlock(xtbl, &bucket);
 		return NULL;
 	}
-	__list_fxid_rm_locked(xtbl, xtbl_lxtbl(xtbl)->fxt_active_branch, fxid);
-	list_fib_unlock(xtbl, &bucket);
+	
+	rht_fxid_rm(xtbl, fxid);
+	atomic_dec(&xtbl->fxt_count);
 	return fxid;
 }
 
-static void list_fxid_rm(struct fib_xid_table *xtbl, struct fib_xid *fxid)
+static void rht_fxid_rm(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 {
-	u32 bucket = list_fib_lock(xtbl, fxid);
-
-	__list_fxid_rm_locked(xtbl, xtbl_lxtbl(xtbl)->fxt_active_branch, fxid);
-	list_fib_unlock(xtbl, &bucket);
+	struct rht_fib_xid_table *rxtlb = xtbl_rxtbl(xtbl);
+	struct rht_fib_xid *rfxid = fxid_rfxid(fxid);
+	rhashtable_remove_fast(&rxtbl->rht, &rfxid->node, rht_params);
+	atomic_dec(&xtbl->fxt_count);
 }
 
 static void list_fxid_replace_locked(struct fib_xid_table *xtbl,
