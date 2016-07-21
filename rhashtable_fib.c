@@ -53,11 +53,11 @@ static inline int rht_obj_cmpfn(struct rhashtable_compare_arg *arg, const void *
 	return (!are_xids_equal(rfxid_fxid(rfxid)->fx_xid, arg->key));
 }
 
-/* Don't make this function inline, it's bigger than it looks like! */
-static void bucket_lock(struct list_fib_xid_table *lxtbl, u32 bucket)
-	__acquires(bucket)
+static inline u32 rht_obj_hashfn(const void *data, u32 len, u32 seed)
 {
-	xia_lock_table_lock(lxtbl->fxt_locktbl, hash_bucket(lxtbl, bucket));
+	const struct rht_fib_xid *rfxid = data;
+	BUILD_BUG_ON(XIA_XID_MAX != sizeof(u32) * 5);
+	return jhash2((const u32 *)(rfxid_fxid(rfxid)->fx_xid), len, seed);
 }
 
 /* Don't make this function inline, it's bigger than it looks like! */
