@@ -281,41 +281,50 @@ static struct fib_xid *list_fxid_find_lock(void *parg,
 	return list_fxid_find_locked(xtbl, *pbucket, xid, &head);
 }
 
-static int list_iterate_xids(struct fib_xid_table *xtbl,
+/* This function holds and releases an rcu read lock, so the caller must not hold one */  
+static int rht_iterate_xids(struct fib_xid_table *xtbl,
 			     int (*locked_callback)(struct fib_xid_table *xtbl,
 						    struct fib_xid *fxid,
 						    const void *arg),
 			     const void *arg)
 {
-	struct list_fib_xid_table *lxtbl = xtbl_lxtbl(xtbl);
-	struct fib_xid_buckets *abranch;
-	int aindex;
-	u32 bucket;
-	int rc = 0;
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	struct rht_fib_xid *rfxid;
+	struct rhashtable_iter hti;
+	int err, rc = 0;
 
-	read_lock(&lxtbl->fxt_writers_lock);
-	abranch = lxtbl->fxt_active_branch;
-	aindex = lxtbl_branch_index(lxtbl, abranch);
+	err = rhashtable_walk_init(&rxtbl->rht, &hti);
+	if(err) {
+		pr_warn("Allocation error");
+		return err;
+	}
 
-	for (bucket = 0; bucket < abranch->divisor; bucket++) {
-		struct list_fib_xid *lfxid;
-		struct hlist_node *nxt;
-		struct hlist_head *head = __xidhead(abranch->buckets, bucket);
-
-		bucket_lock(lxtbl, bucket);
-		hlist_for_each_entry_safe(lfxid, nxt, head,
-					  fx_branch_list[aindex]) {
-			rc = locked_callback(xtbl, lfxid_fxid(lfxid), arg);
-			if (rc) {
-				bucket_unlock(lxtbl, bucket);
-				goto out;
-			}
+	err = rhashtable_walk_start(&hti);
+	if(err && err != -EAGAIN) {
+		pr_warn("Iterator failed: %d\n",err);
+		rhashtable_walk_stop(&hti);
+		return err;
+	}
+	
+	while((rfxid = rhashtable_walk_next(&hti))) {
+		if(PTR_ERR(rfxid) == -EAGAIN) {
+			pr_info("Info: encountered resize\n");
+			continue;
 		}
-		bucket_unlock(lxtbl, bucket);
+		
+		else if(IS_ERR(rfxid)) {
+			pr_warn("rhashtable_walk_next() error: %ld\n", PTR_ERR(rfxid));
+			break;
+		}
+		
+		rc = locked_callback(xtbl, rfxid_fxid(rfxid), arg);
+		if(rc)
+			goto out;
 	}
 
 out:
-	read_unlock(&lxtbl->fxt_writers_lock);
+	rhashtable_walk_stop(&hti);
+	rhashtable_walk_exit(&hti);
 	return rc;
 }
 
