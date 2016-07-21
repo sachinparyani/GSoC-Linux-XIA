@@ -508,26 +508,23 @@ static int rht_xtbl_dump_rcu(struct fib_xid_table *xtbl,
 			      struct xip_ppal_ctx *ctx, struct sk_buff *skb,
 			      struct netlink_callback *cb)
 {
-	struct fib_xid_buckets *abranch;
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(rxtbl);
+	struct bucket_table *tbl = rht_dereference((&rxtbl->rht)->tbl, &rxtbl->rht);
 	long i, j = 0;
 	long first_j = cb->args[2];
-	int divisor, aindex;
 	int rc;
 
-	abranch = rcu_dereference(xtbl_lxtbl(xtbl)->fxt_active_branch);
-	divisor = abranch->divisor;
-	aindex = lxtbl_branch_index(xtbl_lxtbl(xtbl), abranch);
-	for (i = cb->args[1]; i < divisor; i++, first_j = 0) {
-		struct list_fib_xid *lfxid;
-		struct hlist_head *head = &abranch->buckets[i];
+	for (i = cb->args[1]; i < tbl->size; i++, first_j = 0) {
+		struct rht_fib_xid *rfxid;
+		struct rhash_head *head;
 
 		j = 0;
-		hlist_for_each_entry_rcu(lfxid, head,
-					 fx_branch_list[aindex]) {
+		rhtt_for_each_entry_rcu(rfxid, head, tbl, i, node)
+		{
 			if (j < first_j)
 				goto next;
-			rc = xtbl->all_eops[lfxid_fxid(lfxid)->fx_table_id].
-			     dump_fxid(lfxid_fxid(lfxid), xtbl, ctx, skb, cb);
+			rc = xtbl->all_eops[rfxid_fxid(rfxid)->fx_table_id].
+			     dump_fxid(rfxid_fxid(rfxid), xtbl, ctx, skb, cb);
 			if (rc < 0)
 				goto out;
 next:
@@ -542,7 +539,7 @@ out:
 	return rc;
 }
 
-const struct xia_ppal_rt_iops xia_ppal_list_rt_iops = {
+const struct xia_ppal_rt_iops xia_ppal_rht_rt_iops = {
 	.xtbl_init = list_xtbl_init,
 	.xtbl_death_work = list_xtbl_death_work,
 
@@ -570,4 +567,4 @@ const struct xia_ppal_rt_iops xia_ppal_list_rt_iops = {
 
 	.xtbl_dump_rcu = list_xtbl_dump_rcu,
 };
-EXPORT_SYMBOL_GPL(xia_ppal_list_rt_iops);
+EXPORT_SYMBOL_GPL(xia_ppal_rht_rt_iops);
