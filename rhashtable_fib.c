@@ -471,28 +471,32 @@ static void rht_fxid_rm(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 	atomic_dec(&xtbl->fxt_count);
 }
 
-static void list_fxid_replace_locked(struct fib_xid_table *xtbl,
+/* Coming Soon */
+static void rht_fxid_replace_locked(struct fib_xid_table *xtbl,
 				     struct fib_xid *old_fxid,
 				     struct fib_xid *new_fxid)
 {
-	struct list_fib_xid *old_lfxid = fxid_lfxid(old_fxid);
-	struct list_fib_xid *new_lfxid = fxid_lfxid(new_fxid);
-	struct fib_xid_buckets *abranch = xtbl_lxtbl(xtbl)->fxt_active_branch;
-	int aindex = lxtbl_branch_index(xtbl_lxtbl(xtbl), abranch);
-
-	hlist_replace_rcu(&old_lfxid->fx_branch_list[aindex],
-			  &new_lfxid->fx_branch_list[aindex]);
 }
 
-int list_fib_delroute(struct xip_ppal_ctx *ctx, struct fib_xid_table *xtbl,
+static void rht_fxid_replace(struct fib_xid_table *xtbl,
+				     struct fib_xid *old_fxid,
+				     struct fib_xid *new_fxid)
+{
+	struct rht_fib_xid *old_rfxid = fxid_rfxid(old_fxid);
+	struct rht_fib_xid *new_rfxid = fxid_rfxid(new_fxid);
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	rhashtable_replace_fast(&rxtbl->rht, &old_rfxid->node, &new_rfxid->node, rht_params);
+}
+
+int rht_fib_delroute(struct xip_ppal_ctx *ctx, struct fib_xid_table *xtbl,
 		      struct xia_fib_config *cfg)
 {
 	u32 bucket;
 	return all_fib_delroute(ctx, xtbl, cfg, &bucket);
 }
-EXPORT_SYMBOL_GPL(list_fib_delroute);
+EXPORT_SYMBOL_GPL(rht_fib_delroute);
 
-static int list_fib_newroute(struct fib_xid *new_fxid,
+static int rht_fib_newroute(struct fib_xid *new_fxid,
 			     struct fib_xid_table *xtbl,
 			     struct xia_fib_config *cfg, int *padded)
 {
@@ -500,7 +504,7 @@ static int list_fib_newroute(struct fib_xid *new_fxid,
 	return all_fib_newroute(new_fxid, xtbl, cfg, padded, &bucket);
 }
 
-static int list_xtbl_dump_rcu(struct fib_xid_table *xtbl,
+static int rht_xtbl_dump_rcu(struct fib_xid_table *xtbl,
 			      struct xip_ppal_ctx *ctx, struct sk_buff *skb,
 			      struct netlink_callback *cb)
 {
