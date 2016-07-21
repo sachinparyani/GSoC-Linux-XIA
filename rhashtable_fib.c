@@ -30,6 +30,17 @@ static inline struct rht_fib_xid_table *xtbl_rxtbl(struct fib_xid_table *xtbl)
 	return (struct rht_fib_xid_table *)xtbl->fxt_data;
 }
 
+static struct rhashtable_params rht_params = {
+	.head_offset = offsetof(struct rht_fib_xid, node),
+	.key_len = 5,
+	.hashfn = rht_jhash2,
+	.obj_cmpfn = rht_obj_cmpfn,
+	.obj_hashfn = rht_obj_hashfn,
+	.automatic_shrinking = true,
+	.max_size = 50000;
+	.nulls_base = (3U << RHT_BASE_SHIFT),
+};
+
 /* Not sure if this function should be inline or not */
 static void free_fn(void *ptr, void *arg)
 {
