@@ -238,14 +238,10 @@ static void rht_fib_unlock(struct fib_xid_table *xtbl, void *parg)
 	spin_unlock_bh(lock);
 }
 
-/* Coming soon */
 static struct fib_xid *rht_fxid_find_lock(void *parg,
 	struct fib_xid_table *xtbl, const u8 *xid) __acquires(xip_bucket_lock)
 {
 	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
-	struct rht_fib_xid *rfxid;
-	rfxid = rhashtable_lookup_fast(&rxtbl->rht, xid, rht_params);
-	
 	struct rhashtable_compare_arg arg = {
 		.ht = &rxtbl->rht,
 		.key = xid,
@@ -253,11 +249,14 @@ static struct fib_xid *rht_fxid_find_lock(void *parg,
 	const struct bucket_table *tbl;
 	struct rhash_head *he;
 	unsigned int hash;
+	spinlock_t *lock;
 	
-	tbl = rht_dereference_rcu((&rxtbl->rht)->tbl, &rxtbl->rht);
+	tbl = (&rxtbl->rht)->tbl;
 restart:
 	hash = rht_key_hashfn(&rxtbl->rht, tbl, xid, rht_params);
-	rht_for_each_rcu(he, tbl, hash) {
+	lock = rht_bucket_lock(tbl, hash);
+	spin_lock_bh(lock);
+	rht_for_each(he, tbl, hash) {
 		if (params.obj_cmpfn ?
 		    params.obj_cmpfn(&arg, rht_obj(&rxtbl->rht, he)) :
 		    rhashtable_compare(&arg, rht_obj(&rxtbl->rht, he)))
@@ -269,7 +268,7 @@ restart:
 	/* Ensure we see any new tables. */
 	smp_rmb();
 
-	tbl = rht_dereference_rcu(tbl->future_tbl, &rxtbl->rht);
+	tbl = tbl->future_tbl;
 	if (unlikely(tbl))
 		goto restart;
 	
