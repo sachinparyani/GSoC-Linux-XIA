@@ -1,7 +1,0 @@
-kernel/net/xia/ppal_ad/xia_ppal_ad.ko
-kernel/net/xia/ppal_hid/xia_ppal_hid.ko
-kernel/net/xia/ppal_lpm/xia_ppal_lpm.ko
-kernel/net/xia/ppal_uni4id/xia_ppal_uni4id.ko
-kernel/net/xia/ppal_u4id/xia_ppal_u4id.ko
-kernel/net/xia/ppal_xdp/xia_ppal_xdp.ko
-kernel/net/xia/ppal_zf/xia_ppal_zf.ko
