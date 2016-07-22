@@ -408,13 +408,119 @@ out:
 	return rc;
 }
 
-/* Coming Soon */
+static inline int __rhashtable_insert_fast_locked(
+	struct rhashtable *ht, const void *key, struct rhash_head *obj,
+	const struct rhashtable_params params)
+{
+	struct rhashtable_compare_arg arg = {
+		.ht = ht,
+		.key = key,
+	};
+	struct bucket_table *tbl, *new_tbl;
+	struct rhash_head *head;
+	unsigned int elasticity;
+	unsigned int hash;
+	int err;
+
+restart:
+	rcu_read_lock();
+
+	tbl = rht_dereference_rcu(ht->tbl, ht);
+
+	/* All insertions must grab the oldest table containing
+	 * the hashed bucket that is yet to be rehashed.
+	 */
+	for (;;) {
+		hash = rht_head_hashfn(ht, tbl, obj, params);
+		
+		if (tbl->rehash <= hash)
+			break;
+
+		tbl = rht_dereference_rcu(tbl->future_tbl, ht);
+	}
+
+	new_tbl = rht_dereference_rcu(tbl->future_tbl, ht);
+	if (unlikely(new_tbl)) {
+		tbl = rhashtable_insert_slow(ht, key, obj, new_tbl);
+		if (!IS_ERR_OR_NULL(tbl))
+			goto slow_path;
+
+		err = PTR_ERR(tbl);
+		goto out;
+	}
+
+	err = -E2BIG;
+	if (unlikely(rht_grow_above_max(ht, tbl)))
+		goto out;
+
+	if (unlikely(rht_grow_above_100(ht, tbl))) {
+slow_path:
+		
+		err = rhashtable_insert_rehash(ht, tbl);
+		rcu_read_unlock();
+		if (err)
+			return err;
+
+		goto restart;
+	}
+
+	err = -EEXIST;
+	elasticity = ht->elasticity;
+	rht_for_each(head, tbl, hash) {
+		if (key &&
+		    unlikely(!(params.obj_cmpfn ?
+			       params.obj_cmpfn(&arg, rht_obj(ht, head)) :
+			       rhashtable_compare(&arg, rht_obj(ht, head)))))
+			goto out;
+		if (!--elasticity)
+			goto slow_path;
+	}
+
+	err = 0;
+
+	head = rht_dereference_bucket(tbl->buckets[hash], tbl, hash);
+
+	RCU_INIT_POINTER(obj->next, head);
+
+	rcu_assign_pointer(tbl->buckets[hash], obj);
+
+	atomic_inc(&ht->nelems);
+	if (rht_grow_above_75(ht, tbl))
+		schedule_work(&ht->run_work);
+
+out:
+	rcu_read_unlock();
+
+	return err;
+}
+
+static inline int rhashtable_lookup_insert_key_locked(
+	struct rhashtable *ht, const void *key, struct rhash_head *obj,
+	const struct rhashtable_params params)
+{
+	BUG_ON(!ht->p.obj_hashfn || !key);
+
+	return __rhashtable_insert_fast_locked(ht, key, obj, params);
+}
+
+/* In this function, the condition xtbl->dead has not been checked before expansion */
 static int rht_fxid_add_locked(void *parg, struct fib_xid_table *xtbl,
 				struct fib_xid *fxid)
 {
-	return 0;
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	struct rht_fib_xid *rfxid = fxid_rfxid(fxid);
+	int rc;
+	
+	rc =  rhashtable_lookup_insert_key_locked(&rxtbl->rht, fxid->fx_xid, &rfxid->node, &rht_params);
+	if(IS_ERR(rc))
+		goto out;
+	
+	atomic_inc(&xtbl->fxt_count);
+ out: 	
+	return rc;
 }
 
+/* In this function, the condition xtbl->dead has not been checked before expansion */ 
 static int rht_fxid_add(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 {
 	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
