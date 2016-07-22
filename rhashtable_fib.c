@@ -408,7 +408,7 @@ out:
 	return rc;
 }
 
-static inline int __rhashtable_insert_fast_locked(
+static int __rhashtable_insert_fast_locked(
 	struct rhashtable *ht, const void *key, struct rhash_head *obj,
 	const struct rhashtable_params params)
 {
