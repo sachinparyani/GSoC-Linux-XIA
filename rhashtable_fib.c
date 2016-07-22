@@ -625,11 +625,74 @@ static struct fib_xid *rht_xid_rm(struct fib_xid_table *xtbl, const u8 *xid)
 	return fxid;
 }
 
-/* Coming Soon */
+static inline int __rhashtable_replace_fast_locked(
+	struct rhashtable *ht, struct bucket_table *tbl,
+	struct rhash_head *obj_old, struct rhash_head *obj_new,
+	const struct rhashtable_params params)
+{
+	struct rhash_head __rcu **pprev;
+	struct rhash_head *he;
+	unsigned int hash;
+	int err = -ENOENT;
+
+	/* Minimally, the old and new objects must have same hash
+	 * (which should mean identifiers are the same).
+	 */
+	hash = rht_head_hashfn(ht, tbl, obj_old, params);
+	if (hash != rht_head_hashfn(ht, tbl, obj_new, params))
+		return -EINVAL;
+
+	pprev = &tbl->buckets[hash];
+	rht_for_each(he, tbl, hash) {
+		if (he != obj_old) {
+			pprev = &he->next;
+			continue;
+		}
+
+		rcu_assign_pointer(obj_new->next, obj_old->next);
+		rcu_assign_pointer(*pprev, obj_new);
+		err = 0;
+		break;
+	}
+
+	return err;
+}
+
+static inline int rhashtable_replace_fast_locked(
+	struct rhashtable *ht, struct rhash_head *obj_old,
+	struct rhash_head *obj_new,
+	const struct rhashtable_params params)
+{
+	struct bucket_table *tbl;
+	int err;
+
+	rcu_read_lock();
+
+	tbl = rht_dereference_rcu(ht->tbl, ht);
+
+	/* Because we have already taken (and released) the bucket
+	 * lock in old_tbl, if we find that future_tbl is not yet
+	 * visible then that guarantees the entry to still be in
+	 * the old tbl if it exists.
+	 */
+	while ((err = __rhashtable_replace_fast_locked(ht, tbl, obj_old,
+						obj_new, params)) &&
+	       (tbl = rht_dereference_rcu(tbl->future_tbl, ht)))
+		;
+
+	rcu_read_unlock();
+
+	return err;
+}
+
 static void rht_fxid_replace_locked(struct fib_xid_table *xtbl,
 				     struct fib_xid *old_fxid,
 				     struct fib_xid *new_fxid)
 {
+	struct rht_fib_xid *old_rfxid = fxid_rfxid(old_fxid);
+	struct rht_fib_xid *new_rfxid = fxid_rfxid(new_fxid);
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	rhashtable_replace_fast_locked(&rxtbl->rht, &old_rfxid->node, &new_rfxid->node, rht_params);
 }
 
 static void rht_fxid_replace(struct fib_xid_table *xtbl,
