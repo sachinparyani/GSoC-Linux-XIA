@@ -322,14 +322,90 @@ out:
 	return rc;
 }
 
-/* Coming Soon */
+static int rhashtable_walk_start_rcu(struct rhashtable_iter *iter)
+{
+	struct rhashtable *ht = iter->ht;
+
+	spin_lock(&ht->lock);
+	if (iter->walker->tbl)
+		list_del(&iter->walker->list);
+	spin_unlock(&ht->lock);
+
+	if (!iter->walker->tbl) {
+		iter->walker->tbl = rht_dereference_rcu(ht->tbl, ht);
+		return -EAGAIN;
+	}
+
+	return 0;
+}
+
+void rhashtable_walk_stop_rcu(struct rhashtable_iter *iter)
+{
+	struct rhashtable *ht;
+	struct bucket_table *tbl = iter->walker->tbl;
+
+	if (!tbl)
+		goto out;
+
+	ht = iter->ht;
+
+	spin_lock(&ht->lock);
+	if (tbl->rehash < tbl->size)
+		list_add(&iter->walker->list, &tbl->walkers);
+	else
+		iter->walker->tbl = NULL;
+	spin_unlock(&ht->lock);
+
+	iter->p = NULL;
+
+out:
+	return;
+}
+
 static int rht_iterate_xids_rcu(struct fib_xid_table *xtbl,
 				 int (*rcu_callback)(struct fib_xid_table *xtbl,
 						     struct fib_xid *fxid,
 						     const void *arg),
 				 const void *arg)
 {
-	return 0;
+	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
+	struct rht_fib_xid *rfxid;
+	struct rhashtable_iter hti;
+	int err, rc = 0;
+
+	err = rhashtable_walk_init(&rxtbl->rht, &hti);
+	if(err) {
+		pr_warn("Allocation error");
+		return err;
+	}
+
+	err = rhashtable_walk_start_rcu(&hti);
+	if(err && err != -EAGAIN) {
+		pr_warn("Iterator failed: %d\n",err);
+		rhashtable_walk_stop(&hti);
+		return err;
+	}
+	
+	while((rfxid = rhashtable_walk_next(&hti))) {
+		if(PTR_ERR(rfxid) == -EAGAIN) {
+			pr_info("Info: encountered resize\n");
+			continue;
+		}
+		
+		else if(IS_ERR(rfxid)) {
+			pr_warn("rhashtable_walk_next() error: %ld\n", PTR_ERR(rfxid));
+			break;
+		}
+		
+		rc = locked_callback(xtbl, rfxid_fxid(rfxid), arg);
+		if(rc)
+			goto out;
+	}
+
+out:
+	rhashtable_walk_stop_rcu(&hti);
+	rhashtable_walk_exit(&hti);
+	return rc;
 }
 
 /* Coming Soon */
