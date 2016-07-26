@@ -1,0 +1,1 @@
+cmd_net/xia/ppal_xdp/xia_ppal_xdp.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o net/xia/ppal_xdp/xia_ppal_xdp.ko net/xia/ppal_xdp/xia_ppal_xdp.o net/xia/ppal_xdp/xia_ppal_xdp.mod.o

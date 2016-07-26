@@ -1,0 +1,1 @@
+cmd_net/xia/ppal_uni4id/xia_ppal_uni4id.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o net/xia/ppal_uni4id/xia_ppal_uni4id.ko net/xia/ppal_uni4id/xia_ppal_uni4id.o net/xia/ppal_uni4id/xia_ppal_uni4id.mod.o
