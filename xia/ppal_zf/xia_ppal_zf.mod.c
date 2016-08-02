@@ -64,7 +64,7 @@ __attribute__((section("__versions"))) = {
 static const char __module_depends[]
 __used
 __attribute__((section(".modinfo"))) =
-"depends=";
+"depends=xia";
 
 
 MODULE_INFO(srcversion, "03AC24C12C970968C579A0B");

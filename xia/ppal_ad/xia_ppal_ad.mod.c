@@ -29,11 +29,10 @@ __attribute__((section("__versions"))) = {
 	{ 0x49792401, __VMLINUX_SYMBOL_STR(ppal_del_map) },
 	{ 0x17270715, __VMLINUX_SYMBOL_STR(skb_trim) },
 	{ 0x26a92f79, __VMLINUX_SYMBOL_STR(xia_register_pernet_subsys) },
+	{ 0xb20f2c7e, __VMLINUX_SYMBOL_STR(rht_fib_delroute) },
 	{ 0xe26d8b83, __VMLINUX_SYMBOL_STR(unregister_pernet_subsys) },
 	{ 0x1683e6f3, __VMLINUX_SYMBOL_STR(xdst_attach_to_anchor) },
-	{ 0x5d070b31, __VMLINUX_SYMBOL_STR(xia_ppal_list_rt_iops) },
 	{ 0xeae6da82, __VMLINUX_SYMBOL_STR(xip_init_ppal_ctx) },
-	{ 0x7547710, __VMLINUX_SYMBOL_STR(list_fib_delroute) },
 	{ 0x508cb3e9, __VMLINUX_SYMBOL_STR(xip_del_router) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
 	{ 0xb9ad3e69, __VMLINUX_SYMBOL_STR(fib_mrd_redirect) },
@@ -51,13 +50,14 @@ __attribute__((section("__versions"))) = {
 	{ 0x82adb0a, __VMLINUX_SYMBOL_STR(fib_mrd_newroute) },
 	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
 	{ 0xb0e602eb, __VMLINUX_SYMBOL_STR(memmove) },
+	{ 0xf52b7ab, __VMLINUX_SYMBOL_STR(xia_ppal_rht_rt_iops) },
 	{ 0x7f1d329c, __VMLINUX_SYMBOL_STR(__nlmsg_put) },
 };
 
 static const char __module_depends[]
 __used
 __attribute__((section(".modinfo"))) =
-"depends=";
+"depends=xia";
 
 
-MODULE_INFO(srcversion, "AC00E54543C21EE22633780");
+MODULE_INFO(srcversion, "26F10B01E34E2C1BBE21701");

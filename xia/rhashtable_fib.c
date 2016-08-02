@@ -64,6 +64,72 @@ static struct rhashtable_params rht_params = {
 	.nulls_base = (3U << RHT_BASE_SHIFT),
 };
 
+static inline int __rhashtable_remove_fast_death(
+	struct rhashtable *ht, struct bucket_table *tbl,
+	struct rhash_head *obj, const struct rhashtable_params params)
+{
+	struct rhash_head __rcu **pprev;
+	struct rhash_head *he;
+	//struct bucket_table *tbl;
+	
+	spinlock_t * lock;
+	unsigned int hash;
+	int err = -ENOENT;
+
+	//tbl = rht_dereference_rcu(ht->tbl, ht);
+	hash = rht_head_hashfn(ht, tbl, obj, params);
+	lock = rht_bucket_lock(tbl, hash);
+
+	spin_lock_bh(lock);
+
+	pprev = &tbl->buckets[hash];
+	rht_for_each(he, tbl, hash) {
+		if (he != obj) {
+			pprev = &he->next;
+			continue;
+		}
+
+		rcu_assign_pointer(*pprev, obj->next);
+		err = 0;
+		break;
+	}
+
+	spin_unlock_bh(lock);
+
+	return err;
+}
+
+static inline int rhashtable_remove_fast_death(
+	struct rhashtable *ht, struct rhash_head *obj,
+	const struct rhashtable_params params)
+{
+	struct bucket_table *tbl;
+	int err;
+
+	rcu_read_lock();
+
+	tbl = rht_dereference_rcu(ht->tbl, ht);
+
+	/* Because we have already taken (and released) the bucket
+	 * lock in old_tbl, if we find that future_tbl is not yet
+	 * visible then that guarantees the entry to still be in
+	 * the old tbl if it exists.
+	 */
+	while ((err = __rhashtable_remove_fast_death(ht, tbl, obj, params)) &&
+	       (tbl = rht_dereference_rcu(tbl->future_tbl, ht)))
+		;
+
+	if (err)
+		goto out;
+
+	atomic_dec(&ht->nelems);
+	
+
+out:
+	rcu_read_unlock();
+
+	return err;
+}
 /* Not sure if this function should be inline or not */
 static void free_fn(void *ptr, void *arg)
 {
@@ -71,7 +137,7 @@ static void free_fn(void *ptr, void *arg)
 	int *rm_count = rfd_arg->rm_count;
 	struct rht_fib_xid *rfxid = ptr;
 	struct fib_xid_table *xtbl = rfd_arg->xtbl;
-	rhashtable_remove_fast(&xtbl_rxtbl(xtbl)->rht, &rfxid->node, (&xtbl_rxtbl(xtbl)->rht)->p);
+	rhashtable_remove_fast_death(&xtbl_rxtbl(xtbl)->rht, &rfxid->node, (&xtbl_rxtbl(xtbl)->rht)->p);
 	fxid_free_norcu(xtbl, rfxid_fxid(rfxid));
 	(*rm_count)++;
 }
@@ -156,6 +222,8 @@ static void rht_xtbl_death_work(struct work_struct *work)
 		.xtbl = xtbl,
 		.rm_count = &rm_count,
 	};
+
+	synchronize_rcu();	
 
 	rhashtable_free_and_destroy(&rxtbl->rht, free_fn, &arg);
 	
@@ -253,15 +321,15 @@ static struct fib_xid *rht_fxid_find_lock(void *parg,
 	};
 	const struct bucket_table *tbl;
 	struct rhash_head *he;
-	unsigned int hash;
+	unsigned int *phash = parg;
 	spinlock_t *lock;
 	
 	tbl = (&rxtbl->rht)->tbl;
 restart:
-	hash = rht_key_hashfn(&rxtbl->rht, tbl, xid, rht_params);
-	lock = rht_bucket_lock(tbl, hash);
+	*phash = rht_key_hashfn(&rxtbl->rht, tbl, xid, rht_params);
+	lock = rht_bucket_lock(tbl, *phash);
 	spin_lock_bh(lock);
-	rht_for_each(he, tbl, hash) {
+	rht_for_each(he, tbl, *phash) {
 		if (rht_params.obj_cmpfn ?
 		    rht_params.obj_cmpfn(&arg, rht_obj(&rxtbl->rht, he)) :
 		    rhashtable_compare(&arg, rht_obj(&rxtbl->rht, he)))
@@ -498,7 +566,7 @@ out:
 	return err;
 }
 
-static inline int rhashtable_lookup_insert_key_locked(
+static inline int __rhashtable_lookup_insert_key_locked(
 	void *parg, struct rhashtable *ht, const void *key,
 	struct rhash_head *obj, const struct rhashtable_params params)
 {
@@ -515,7 +583,7 @@ static int rht_fxid_add_locked(void *parg, struct fib_xid_table *xtbl,
 	struct rht_fib_xid *rfxid = fxid_rfxid(fxid);
 	int rc;
 	
-	rc =  rhashtable_lookup_insert_key_locked(parg, &rxtbl->rht, fxid->fx_xid, &rfxid->node, rht_params);
+	rc =  __rhashtable_lookup_insert_key_locked(parg, &rxtbl->rht, fxid->fx_xid, &rfxid->node, rht_params);
 	if(IS_ERR(&rc))
 		goto out;
 	
@@ -698,9 +766,9 @@ static void rht_fxid_replace_locked(struct fib_xid_table *xtbl,
 	struct rht_fib_xid *new_rfxid = fxid_rfxid(new_fxid);
 	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
 	rhashtable_replace_fast_locked(&rxtbl->rht, &old_rfxid->node, &new_rfxid->node, rht_params);
-}
+} 
 
-/* static void rht_fxid_replace(struct fib_xid_table *xtbl,
+/* static void rht_fxid_replace_locked(struct fib_xid_table *xtbl,
 				     struct fib_xid *old_fxid,
 				     struct fib_xid *new_fxid)
 {
@@ -708,7 +776,7 @@ static void rht_fxid_replace_locked(struct fib_xid_table *xtbl,
 	struct rht_fib_xid *new_rfxid = fxid_rfxid(new_fxid);
 	struct rht_fib_xid_table *rxtbl = xtbl_rxtbl(xtbl);
 	rhashtable_replace_fast(&rxtbl->rht, &old_rfxid->node, &new_rfxid->node, rht_params);
-}*/
+} */
 
 int rht_fib_delroute(struct xip_ppal_ctx *ctx, struct fib_xid_table *xtbl,
 		      struct xia_fib_config *cfg)

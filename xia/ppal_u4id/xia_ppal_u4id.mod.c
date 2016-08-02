@@ -73,7 +73,7 @@ __attribute__((section("__versions"))) = {
 static const char __module_depends[]
 __used
 __attribute__((section(".modinfo"))) =
-"depends=udp_tunnel";
+"depends=xia,udp_tunnel";
 
 
 MODULE_INFO(srcversion, "4C57007DCEA8004CE04CA2B");

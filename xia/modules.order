@@ -1,3 +1,4 @@
+kernel/net/xia/xia.ko
 kernel/net/xia/ppal_ad/xia_ppal_ad.ko
 kernel/net/xia/ppal_hid/xia_ppal_hid.ko
 kernel/net/xia/ppal_lpm/xia_ppal_lpm.ko
