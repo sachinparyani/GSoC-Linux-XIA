@@ -907,7 +907,7 @@ deps_net/xia/ppal_xdp/main.o := \
   arch/x86/include/uapi/asm/ioctls.h \
   include/uapi/asm-generic/ioctls.h \
   include/net/tcp_states.h \
-  include/net/xia_list_fib.h \
+  include/net/xia_rht_fib.h \
   include/net/xia_fib.h \
   include/net/netlink.h \
   include/linux/netlink.h \
@@ -1184,6 +1184,9 @@ deps_net/xia/ppal_xdp/main.o := \
   include/uapi/linux/net_tstamp.h \
   include/net/xia_locktbl.h \
   include/net/xia_route.h \
+  include/linux/rhashtable.h \
+  include/linux/jhash.h \
+  include/linux/unaligned/packed_struct.h \
   include/net/xia_dag.h \
   include/net/xia_socket.h \
   include/net/xia_output.h \

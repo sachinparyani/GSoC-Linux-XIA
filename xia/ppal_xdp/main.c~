@@ -883,7 +883,7 @@ static struct proto xdp_prot __read_mostly = {
 	.sysctl_wmem		= &sysctl_xdp_wmem_min,
 	.sysctl_rmem		= &sysctl_xdp_rmem_min,
 	.obj_size		= sizeof(struct fib_xid_xdp_local) +
-				  sizeof(struct rht_fib_xid),
+				  sizeof(struct list_fib_xid),
 	.slab_flags		= 0,
 };
 

@@ -593,7 +593,7 @@ deps_net/xia/ppal_zf/main.o := \
     $(wildcard include/config/have/mod/arch/specific.h) \
     $(wildcard include/config/modules/use/elf/rel.h) \
     $(wildcard include/config/modules/use/elf/rela.h) \
-  include/net/xia_list_fib.h \
+  include/net/xia_rht_fib.h \
   include/net/xia_fib.h \
   include/net/netlink.h \
   include/linux/netlink.h \
@@ -1178,6 +1178,9 @@ deps_net/xia/ppal_zf/main.o := \
   include/uapi/linux/net_tstamp.h \
   include/net/xia_locktbl.h \
   include/net/xia_route.h \
+  include/linux/rhashtable.h \
+  include/linux/jhash.h \
+  include/linux/unaligned/packed_struct.h \
   include/net/xia_dag.h \
   include/net/xia_vxidty.h \
 

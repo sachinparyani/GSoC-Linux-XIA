@@ -1,5 +1,5 @@
 #include <linux/module.h>
-#include <net/xia_rht_fib.h>
+#include <net/xia_list_fib.h>
 #include <net/xia_route.h>
 #include <net/xia_dag.h>
 #include <net/xia_vxidty.h>
@@ -25,12 +25,12 @@ static inline struct xip_zf_ctx *ctx_zf(struct xip_ppal_ctx *ctx)
 
 static int my_vxt __read_mostly = -1;
 
-/* Use a RHT FIB.
+/* Use a list FIB.
  *
  * NOTE
- *	To fully change the RHT FIB, you must change @zf_all_rt_eops.
+ *	To fully change the list FIB, you must change @zf_all_rt_eops.
  */
-static const struct xia_ppal_rt_iops *zf_rt_iops = &xia_ppal_rht_rt_iops;
+static const struct xia_ppal_rt_iops *zf_rt_iops = &xia_ppal_list_rt_iops;
 
 /* Local ZFs */
 
@@ -219,14 +219,14 @@ static void main_free_zf(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 static const xia_ppal_all_rt_eops_t zf_all_rt_eops = {
 	[XRTABLE_LOCAL_INDEX] = {
 		.newroute = local_newroute,
-		.delroute = rht_fib_delroute,
+		.delroute = list_fib_delroute,
 		.dump_fxid = local_dump_zf,
 		.free_fxid = local_free_zf,
 	},
 
 	[XRTABLE_MAIN_INDEX] = {
 		.newroute = main_newroute,
-		.delroute = rht_fib_delroute,
+		.delroute = list_fib_delroute,
 		.dump_fxid = main_dump_zf,
 		.free_fxid = main_free_zf,
 	},

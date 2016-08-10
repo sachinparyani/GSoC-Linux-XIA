@@ -1,5 +1,5 @@
 #include <linux/module.h>
-#include <net/xia_list_fib.h>
+#include <net/xia_rht_fib.h>
 #include <net/xia_route.h>
 #include <net/xia_dag.h>
 #include <net/xia_vxidty.h>
@@ -29,7 +29,7 @@ static int my_vxt __read_mostly = -1;
  * NOTE
  *	To fully change the list FIB, you must change @ad_all_rt_eops.
  */
-static const struct xia_ppal_rt_iops *ad_rt_iops = &xia_ppal_list_rt_iops;
+static const struct xia_ppal_rt_iops *ad_rt_iops = &xia_ppal_rht_rt_iops;
 
 /* Local ADs */
 
@@ -53,17 +53,23 @@ static int local_newroute(struct xip_ppal_ctx *ctx,
 			  struct fib_xid_table *xtbl,
 			  struct xia_fib_config *cfg)
 {
+	
 	struct fib_xid_ad_local *new_lad;
 	int rc;
-
+	
 	new_lad = ad_rt_iops->fxid_ppal_alloc(sizeof(*new_lad), GFP_KERNEL);
 	if (!new_lad)
 		return -ENOMEM;
+	
 	fxid_init(xtbl, &new_lad->common, cfg->xfc_dst->xid_id,
 		  XRTABLE_LOCAL_INDEX, 0);
-	xdst_init_anchor(&new_lad->anchor);
 
+	
+	xdst_init_anchor(&new_lad->anchor);
+	
 	rc = ad_rt_iops->fib_newroute(&new_lad->common, xtbl, cfg, NULL);
+	
+	
 	if (rc)
 		fxid_free_norcu(xtbl, &new_lad->common);
 	return rc;
@@ -126,12 +132,12 @@ static void local_free_ad(struct fib_xid_table *xtbl, struct fib_xid *fxid)
 static const xia_ppal_all_rt_eops_t ad_all_rt_eops = {
 	[XRTABLE_LOCAL_INDEX] = {
 		.newroute = local_newroute,
-		.delroute = list_fib_delroute,
+		.delroute = rht_fib_delroute,
 		.dump_fxid = local_dump_ad,
 		.free_fxid = local_free_ad,
 	},
 
-	XIP_LIST_FIB_REDIRECT_MAIN,
+	XIP_RHT_FIB_REDIRECT_MAIN,
 };
 
 /* Network namespace */
@@ -242,14 +248,16 @@ static struct xip_route_proc ad_rt_proc __read_mostly = {
 static int __init xia_ad_init(void)
 {
 	int rc;
-
+	
+	
 	rc = vxt_register_xidty(XIDTYPE_AD);
 	if (rc < 0) {
 		pr_err("Can't obtain a virtual XID type for AD\n");
 		goto out;
 	}
 	my_vxt = rc;
-
+	
+	
 	rc = xia_register_pernet_subsys(&ad_net_ops);
 	if (rc)
 		goto vxt;
@@ -257,12 +265,12 @@ static int __init xia_ad_init(void)
 	rc = xip_add_router(&ad_rt_proc);
 	if (rc)
 		goto net;
-
+	
 	rc = ppal_add_map("ad", XIDTYPE_AD);
 	if (rc)
 		goto route;
-
-	pr_alert("XIA Principal AD loaded\n");
+	
+	pr_alert("XIA Principal ADRHT loaded\n");
 	goto out;
 
 route:
@@ -278,14 +286,19 @@ out:
 /* xia_ad_exit - this function is called when the modlule is removed. */
 static void __exit xia_ad_exit(void)
 {
+	printk(KERN_ALERT "Here\n");
 	ppal_del_map(XIDTYPE_AD);
+	printk(KERN_ALERT "Here1\n");
 	xip_del_router(&ad_rt_proc);
+	printk(KERN_ALERT "Here2\n");
 	xia_unregister_pernet_subsys(&ad_net_ops);
+	printk(KERN_ALERT "Here3\n");
 	BUG_ON(vxt_unregister_xidty(XIDTYPE_AD));
-
-	rcu_barrier();
-
-	pr_alert("XIA Principal AD UNloaded\n");
+	printk(KERN_ALERT "Here4\n");
+	rcu_barrier(); 
+	printk(KERN_ALERT "Here5\n");
+	pr_alert("XIA Principal ADRHT Unloaded\n");
+	
 }
 
 module_init(xia_ad_init);

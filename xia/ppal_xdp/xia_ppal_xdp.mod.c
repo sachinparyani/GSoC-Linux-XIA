@@ -51,14 +51,13 @@ __attribute__((section("__versions"))) = {
 	{ 0x26a92f79, __VMLINUX_SYMBOL_STR(xia_register_pernet_subsys) },
 	{ 0x116557af, __VMLINUX_SYMBOL_STR(sock_no_mmap) },
 	{ 0x4f8b5ddb, __VMLINUX_SYMBOL_STR(_copy_to_user) },
+	{ 0xb20f2c7e, __VMLINUX_SYMBOL_STR(rht_fib_delroute) },
 	{ 0x364a5612, __VMLINUX_SYMBOL_STR(sock_no_socketpair) },
 	{ 0xe26d8b83, __VMLINUX_SYMBOL_STR(unregister_pernet_subsys) },
 	{ 0x1683e6f3, __VMLINUX_SYMBOL_STR(xdst_attach_to_anchor) },
 	{ 0x19da2ed5, __VMLINUX_SYMBOL_STR(dev_loopback_xmit) },
-	{ 0x5d070b31, __VMLINUX_SYMBOL_STR(xia_ppal_list_rt_iops) },
 	{ 0xeae6da82, __VMLINUX_SYMBOL_STR(xip_init_ppal_ctx) },
 	{ 0x7d358f7d, __VMLINUX_SYMBOL_STR(skb_copy_datagram_iter) },
-	{ 0x7547710, __VMLINUX_SYMBOL_STR(list_fib_delroute) },
 	{ 0x508cb3e9, __VMLINUX_SYMBOL_STR(xip_del_router) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
 	{ 0x7608a986, __VMLINUX_SYMBOL_STR(xia_del_socket_end) },
@@ -111,6 +110,7 @@ __attribute__((section("__versions"))) = {
 	{ 0xa9e4d1ed, __VMLINUX_SYMBOL_STR(xia_sendmsg) },
 	{ 0xb0e602eb, __VMLINUX_SYMBOL_STR(memmove) },
 	{ 0xa39797bf, __VMLINUX_SYMBOL_STR(xip_flush_pending_frames) },
+	{ 0xf52b7ab, __VMLINUX_SYMBOL_STR(xia_ppal_rht_rt_iops) },
 	{ 0x7f1d329c, __VMLINUX_SYMBOL_STR(__nlmsg_put) },
 	{ 0x27fa66e1, __VMLINUX_SYMBOL_STR(nr_free_buffer_pages) },
 	{ 0x7eda4413, __VMLINUX_SYMBOL_STR(skb_free_datagram_locked) },
@@ -122,4 +122,4 @@ __attribute__((section(".modinfo"))) =
 "depends=xia";
 
 
-MODULE_INFO(srcversion, "B8AA01D645C4BD9FA5C883F");
+MODULE_INFO(srcversion, "FBC5DCB084F5EDE291A5ECF");
