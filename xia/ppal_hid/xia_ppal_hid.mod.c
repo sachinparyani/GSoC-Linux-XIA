@@ -45,7 +45,6 @@ __attribute__((section("__versions"))) = {
 	{ 0x706d051c, __VMLINUX_SYMBOL_STR(del_timer_sync) },
 	{ 0xe26d8b83, __VMLINUX_SYMBOL_STR(unregister_pernet_subsys) },
 	{ 0x1683e6f3, __VMLINUX_SYMBOL_STR(xdst_attach_to_anchor) },
-	{ 0x5d070b31, __VMLINUX_SYMBOL_STR(xia_ppal_list_rt_iops) },
 	{ 0xeae6da82, __VMLINUX_SYMBOL_STR(xip_init_ppal_ctx) },
 	{ 0x508cb3e9, __VMLINUX_SYMBOL_STR(xip_del_router) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
@@ -82,6 +81,7 @@ __attribute__((section("__versions"))) = {
 	{ 0xfb707294, __VMLINUX_SYMBOL_STR(consume_skb) },
 	{ 0x85670f1d, __VMLINUX_SYMBOL_STR(rtnl_is_locked) },
 	{ 0x169c069b, __VMLINUX_SYMBOL_STR(dev_queue_xmit) },
+	{ 0xf52b7ab, __VMLINUX_SYMBOL_STR(xia_ppal_rht_rt_iops) },
 	{ 0x9bc59e3c, __VMLINUX_SYMBOL_STR(skb_put) },
 	{ 0x7f1d329c, __VMLINUX_SYMBOL_STR(__nlmsg_put) },
 };
@@ -92,4 +92,4 @@ __attribute__((section(".modinfo"))) =
 "depends=xia";
 
 
-MODULE_INFO(srcversion, "07977DC03252FA84DAEF0A2");
+MODULE_INFO(srcversion, "5D53CD10BAC1A158B8A198B");

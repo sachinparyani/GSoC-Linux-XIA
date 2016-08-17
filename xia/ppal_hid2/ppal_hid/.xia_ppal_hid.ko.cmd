@@ -1,1 +1,0 @@
-cmd_net/xia/ppal_hid/xia_ppal_hid.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o net/xia/ppal_hid/xia_ppal_hid.ko net/xia/ppal_hid/xia_ppal_hid.o net/xia/ppal_hid/xia_ppal_hid.mod.o

@@ -1182,6 +1182,10 @@ deps_net/xia/ppal_hid/main.o := \
   include/net/xia_fib.h \
   include/net/xia_locktbl.h \
   include/net/xia_route.h \
+  include/net/xia_rht_fib.h \
+  include/linux/rhashtable.h \
+  include/linux/jhash.h \
+  include/linux/unaligned/packed_struct.h \
 
 net/xia/ppal_hid/main.o: $(deps_net/xia/ppal_hid/main.o)
 

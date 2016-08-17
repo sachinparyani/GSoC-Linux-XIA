@@ -1236,10 +1236,11 @@ deps_net/xia/ppal_u4id/main.o := \
   include/net/addrconf.h \
   include/net/xia_dag.h \
   include/net/xia.h \
-  include/net/xia_list_fib.h \
+  include/net/xia_rht_fib.h \
   include/net/xia_fib.h \
   include/net/xia_locktbl.h \
   include/net/xia_route.h \
+  include/linux/rhashtable.h \
   include/net/xia_u4id.h \
   include/net/xia_vxidty.h \
 

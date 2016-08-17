@@ -33,7 +33,6 @@ __attribute__((section("__versions"))) = {
 	{ 0x26a92f79, __VMLINUX_SYMBOL_STR(xia_register_pernet_subsys) },
 	{ 0xe26d8b83, __VMLINUX_SYMBOL_STR(unregister_pernet_subsys) },
 	{ 0x1683e6f3, __VMLINUX_SYMBOL_STR(xdst_attach_to_anchor) },
-	{ 0x5d070b31, __VMLINUX_SYMBOL_STR(xia_ppal_list_rt_iops) },
 	{ 0xeae6da82, __VMLINUX_SYMBOL_STR(xip_init_ppal_ctx) },
 	{ 0x508cb3e9, __VMLINUX_SYMBOL_STR(xip_del_router) },
 	{ 0xc2a7502f, __VMLINUX_SYMBOL_STR(security_sk_classify_flow) },
@@ -66,6 +65,7 @@ __attribute__((section("__versions"))) = {
 	{ 0x2e0d2f7f, __VMLINUX_SYMBOL_STR(queue_work_on) },
 	{ 0xb0e602eb, __VMLINUX_SYMBOL_STR(memmove) },
 	{ 0x169c069b, __VMLINUX_SYMBOL_STR(dev_queue_xmit) },
+	{ 0xf52b7ab, __VMLINUX_SYMBOL_STR(xia_ppal_rht_rt_iops) },
 	{ 0xcca56f8c, __VMLINUX_SYMBOL_STR(ip_queue_xmit) },
 	{ 0x7f1d329c, __VMLINUX_SYMBOL_STR(__nlmsg_put) },
 };
@@ -76,4 +76,4 @@ __attribute__((section(".modinfo"))) =
 "depends=xia,udp_tunnel";
 
 
-MODULE_INFO(srcversion, "4C57007DCEA8004CE04CA2B");
+MODULE_INFO(srcversion, "25112027E00429BF2348C2B");

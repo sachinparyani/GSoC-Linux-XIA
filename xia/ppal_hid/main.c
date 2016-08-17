@@ -3,12 +3,13 @@
 #include <net/xia_output.h>
 #include <net/xia_vxidty.h>
 #include <net/xia_hid.h>
+#include <net/xia_rht_fib.h>
 
 /* HID's virtal XID type. */
 int hid_vxt __read_mostly = -1;
 
-/* Use a list FIB. */
-const struct xia_ppal_rt_iops *hid_rt_iops = &xia_ppal_list_rt_iops;
+/* Use a rhashtable FIB. */
+const struct xia_ppal_rt_iops *hid_rt_iops = &xia_ppal_rht_rt_iops;
 
 /* Local HIDs */
 

@@ -3,7 +3,7 @@
 #include <net/udp.h>
 #include <net/udp_tunnel.h>
 #include <net/xia_dag.h>
-#include <net/xia_rht_fib.h>
+#include <net/xia_list_fib.h>
 #include <net/xia_u4id.h>
 #include <net/xia_vxidty.h>
 #include <uapi/linux/udp.h>
@@ -38,8 +38,8 @@ static inline struct xip_u4id_ctx *ctx_u4id(struct xip_ppal_ctx *ctx)
 
 static int my_vxt __read_mostly = -1;
 
-/* Use a RHT FIB. */
-static const struct xia_ppal_rt_iops *u4id_rt_iops = &xia_ppal_rht_rt_iops;
+/* Use a list FIB. */
+static const struct xia_ppal_rt_iops *u4id_rt_iops = &xia_ppal_list_rt_iops;
 
 /* Local U4IDs */
 

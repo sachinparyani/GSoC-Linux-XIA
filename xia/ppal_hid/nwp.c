@@ -5,7 +5,7 @@
 #include <linux/cache.h>
 #include <net/xia_dag.h>
 #include <net/xia_hid.h>
-#include <net/xia_list_fib.h>
+#include <net/xia_rht_fib.h>
 
 /* Neighbor Table */
 
